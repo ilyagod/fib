@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  consumer:
+    build:
+      context: ../
+      dockerfile: ci/Dockerfile
+    restart: always
+    tty: true
+    volumes:
+      - "../app/:/var/app"
+    env_file:
+      - .env
+    depends_on:
+      mq:
+        condition: service_healthy
+
+  mq:
+    image: rabbitmq:3.11.9-management-alpine
+    expose:
+      - 5672
+      - 15672
+    volumes:
+      - "mq_data:/var/lib/rabbitmq"
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mq_data: {}
